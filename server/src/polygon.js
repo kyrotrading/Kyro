@@ -138,11 +138,11 @@ export function startPolygonFeed(symbols, onQuotes, onAllQuotes) {
     ws.on("open", () => {
       ws.send(JSON.stringify({ action: "auth", params: POLYGON_API_KEY }));
       const params = subscribedSymbols
-        .flatMap((s) => [`T.${s}`, `A.${s}`])
+        .map((s) => `A.${s}`)
         .join(",");
       ws.send(JSON.stringify({ action: "subscribe", params }));
       console.log(
-        `Connected Polygon websocket for ${subscribedSymbols.length} symbols`
+        `Connected Polygon websocket (A) for ${subscribedSymbols.length} symbols`
       );
     });
 
@@ -156,27 +156,29 @@ export function startPolygonFeed(symbols, onQuotes, onAllQuotes) {
       if (!Array.isArray(payload)) return;
 
       for (const msg of payload) {
+        if (msg.ev === "status") {
+          if (msg.status === "auth_failed") {
+            console.warn("Polygon websocket auth failed.");
+          }
+          continue;
+        }
         const symbol = msg.sym;
         if (!symbol || !subscribedSymbols.includes(symbol)) continue;
 
-        // T = trade, A = second aggregate
-        if (msg.ev !== "T" && msg.ev !== "A") continue;
+        // A = per-second aggregate
+        if (msg.ev !== "A") continue;
 
-        const price = msg.ev === "A" ? msg.c : msg.p;
+        const price = msg.c;
         if (typeof price !== "number") continue;
 
         const prev = state[symbol];
         const open =
           prev?.open ??
-          (msg.ev === "A" && typeof msg.o === "number" ? msg.o : price);
+          (typeof msg.o === "number" ? msg.o : price);
         const prevClose = prev?.prevClose ?? open;
         const high = Math.max(prev?.high ?? price, msg.h ?? price, price);
         const low = Math.min(prev?.low ?? price, msg.l ?? price, price);
-        const volume =
-          msg.ev === "A" && typeof msg.v === "number"
-            ? msg.v
-            : (prev?.volume ?? 0) +
-              (typeof msg.s === "number" ? msg.s : 0);
+        const volume = typeof msg.v === "number" ? msg.v : prev?.volume ?? 0;
 
         state[symbol] = {
           symbol,

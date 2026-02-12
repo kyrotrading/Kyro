@@ -1,14 +1,14 @@
 const TOP_SECTORS = [
-  { id: "energy", name: "Energy", symbols: ["XOM", "CVX", "COP", "SLB", "EOG", "HAL"] },
-  { id: "semis", name: "Semiconductors", symbols: ["NVDA", "AMD", "AVGO", "MU", "LRCX", "KLAC"] },
-  { id: "technology", name: "Technology", symbols: ["MSFT", "AAPL", "CSCO", "CRM", "ADBE", "ORCL"] },
-  { id: "consumer-defensive", name: "Consumer Defensive", symbols: ["PG", "COST", "WMT", "KO", "PEP", "MO"] },
-  { id: "financial", name: "Financial", symbols: ["JPM", "BAC", "WFC", "MS", "GS", "SCHW"] },
-  { id: "utilities-re", name: "Utilities & RE", symbols: ["NEE", "DUK", "SO", "PLD", "AMT", "SPG"] },
-  { id: "industrials", name: "Industrials", symbols: ["CAT", "DE", "BA", "HON", "UPS", "GE"] },
-  { id: "communication", name: "Communication", symbols: ["META", "GOOGL", "NFLX", "TMUS", "T", "VZ"] },
-  { id: "consumer-cyclical", name: "Consumer Cyclical", symbols: ["AMZN", "TSLA", "HD", "MCD", "SBUX", "TJX"] },
-  { id: "healthcare", name: "Healthcare", symbols: ["LLY", "JNJ", "UNH", "MRK", "TMO", "PFE"] },
+  { id: "energy", name: "Energy", symbols: ["XOM", "CVX", "COP", "SLB"] },
+  { id: "semis", name: "Semiconductors", symbols: ["NVDA", "AMD", "AVGO", "MU"] },
+  { id: "technology", name: "Technology", symbols: ["MSFT", "AAPL", "CSCO", "CRM"] },
+  { id: "consumer-defensive", name: "Consumer Defensive", symbols: ["PG", "COST", "WMT", "KO"] },
+  { id: "financial", name: "Financial", symbols: ["JPM", "BAC", "WFC", "MS"] },
+  { id: "utilities-re", name: "Utilities & RE", symbols: ["NEE", "DUK", "SO", "PLD"] },
+  { id: "industrials", name: "Industrials", symbols: ["CAT", "DE", "BA", "HON"] },
+  { id: "communication", name: "Communication", symbols: ["META", "GOOGL", "NFLX", "TMUS"] },
+  { id: "consumer-cyclical", name: "Consumer Cyclical", symbols: ["AMZN", "TSLA", "HD", "MCD"] },
+  { id: "healthcare", name: "Healthcare", symbols: ["LLY", "JNJ", "UNH", "MRK"] },
 ];
 
 export function getSectorSymbols() {
