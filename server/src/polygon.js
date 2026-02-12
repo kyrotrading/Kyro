@@ -4,6 +4,7 @@ import { getSectorSymbols } from "./sectorHeatmap.js";
 const POLYGON_API_KEY = process.env.POLYGON_API_KEY || "";
 const BASE = "https://api.polygon.io";
 const INDEX_POLL_MS = 10000; // 10 seconds for indices
+const NY_TZ = "America/New_York";
 
 /**
  * Fetch snapshot for US indices (S&P 500, NASDAQ, Dow, Russell 2000)
@@ -97,6 +98,15 @@ async function seedSnapshots(symbols, state) {
   }
 }
 
+function getNyDateKey() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: NY_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 export function startPolygonFeed(symbols, onQuotes, onAllQuotes) {
   if (!POLYGON_API_KEY) {
     console.warn("POLYGON_API_KEY missing. Stock websocket feed not started.");
@@ -110,7 +120,9 @@ export function startPolygonFeed(symbols, onQuotes, onAllQuotes) {
   let dirty = false;
   let reconnectTimer = null;
   let flushTimer = null;
+  let reseedTimer = null;
   let ws = null;
+  let lastSeedNyDate = "";
 
   const flush = () => {
     if (!dirty) return;
@@ -194,15 +206,32 @@ export function startPolygonFeed(symbols, onQuotes, onAllQuotes) {
     });
   };
 
-  seedSnapshots(subscribedSymbols, state).finally(() => {
+  const reseed = async () => {
+    await seedSnapshots(subscribedSymbols, state);
+    lastSeedNyDate = getNyDateKey();
     dirty = true;
+  };
+
+  reseed().finally(() => {
     connect();
   });
+
+  // Refresh baselines once per NY market day rollover.
+  reseedTimer = setInterval(() => {
+    const nowNyDate = getNyDateKey();
+    if (nowNyDate !== lastSeedNyDate) {
+      reseed().catch((err) => {
+        console.warn("Daily reseed failed:", err.message);
+      });
+    }
+  }, 60 * 1000);
+
   flushTimer = setInterval(flush, 1000);
 
   return () => {
     if (reconnectTimer) clearTimeout(reconnectTimer);
     if (flushTimer) clearInterval(flushTimer);
+    if (reseedTimer) clearInterval(reseedTimer);
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.close();
     }
