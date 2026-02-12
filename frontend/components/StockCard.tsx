@@ -83,9 +83,9 @@ export function StockCard({ symbol, quote }: Props) {
       )}
 
       {!quote && (
-        <p className="mt-3 text-sm text-danger">
-          Failed to display data
-        </p>
+        <div className="mt-3 flex items-center">
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
+        </div>
       )}
     </div>
   );

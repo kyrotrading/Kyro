@@ -82,8 +82,8 @@ export function SectorHeatmap({ sectors, breadth }: Props) {
       </div>
 
       {sectors.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-card p-6 text-danger">
-          Failed to display data
+        <div className="flex items-center justify-center rounded-2xl border border-white/10 bg-card p-10">
+          <span className="inline-block h-7 w-7 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
