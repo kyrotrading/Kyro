@@ -4,10 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ColorType,
   createChart,
-  CandlestickSeries,
-  HistogramSeries,
   type IChartApi,
-  type ISeriesApi,
   type CandlestickData,
   type HistogramData,
   type UTCTimestamp,
@@ -52,8 +49,8 @@ export default function ChartsPage() {
 
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const volRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const candleRef = useRef<any>(null);
+  const volRef = useRef<any>(null);
   const barsRef = useRef<CandlestickData<UTCTimestamp>[]>([]);
   const rangeRef = useRef<RangeKey>(range);
 
@@ -99,7 +96,7 @@ export default function ChartsPage() {
       handleScale: true,
     });
 
-    const candles = chart.addSeries(CandlestickSeries, {
+    const candles = chart.addCandlestickSeries({
       upColor: "#10b981",
       downColor: "#ef4444",
       wickUpColor: "#10b981",
@@ -108,7 +105,7 @@ export default function ChartsPage() {
       priceLineVisible: true,
     });
 
-    const volume = chart.addSeries(HistogramSeries, {
+    const volume = chart.addHistogramSeries({
       priceFormat: { type: "volume" },
       priceScaleId: "",
       color: "rgba(56, 189, 248, 0.35)",
