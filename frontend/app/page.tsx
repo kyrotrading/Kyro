@@ -3,7 +3,7 @@
 import { useSocketQuotes } from "@/lib/useSocketQuotes";
 import { StockCard } from "@/components/StockCard";
 
-const SYMBOLS = ["AAPL", "SPY", "TSLA"] as const;
+const SYMBOLS = ["SPY", "QQQ", "DIA", "IWM"] as const;
 
 export default function Home() {
   const { quotes, connected } = useSocketQuotes(SYMBOLS);
@@ -17,7 +17,7 @@ export default function Home() {
             Market Overview
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Real-time data from Polygon.io. AAPL · SPY · TSLA.
+            Real-time data from Polygon.io. SPY · QQQ · DIA · IWM.
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-full bg-card px-4 py-2 text-sm">
@@ -37,7 +37,7 @@ export default function Home() {
         <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-muted">
           Market Overview
         </h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {SYMBOLS.map((symbol) => (
             <StockCard
               key={symbol}

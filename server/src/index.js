@@ -20,7 +20,7 @@ const io = new Server(httpServer, {
   transports: ["websocket", "polling"],
 });
 
-const DEFAULT_SYMBOLS = ["AAPL", "SPY", "TSLA"];
+const DEFAULT_SYMBOLS = ["SPY", "QQQ", "DIA", "IWM"];
 const INDEX_SYMBOLS = ["I:SPX", "I:NDX", "I:DJI", "I:RUT"];
 
 io.on("connection", (socket) => {
