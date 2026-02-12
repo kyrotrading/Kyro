@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import { startPolygonFeed, startPolygonIndexFeed } from "./polygon.js";
+import { startSectorHeatmapFeed } from "./sectorHeatmap.js";
 
 const PORT = process.env.PORT || 4000;
 const app = express();
@@ -38,6 +39,10 @@ io.on("connection", (socket) => {
   socket.on("subscribeIndices", () => {
     socket.join("indexQuotes");
   });
+
+  socket.on("subscribeSectorHeatmap", () => {
+    socket.join("sectorHeatmap");
+  });
 });
 
 function broadcastQuotes(quotes) {
@@ -48,8 +53,13 @@ function broadcastIndexQuotes(indices) {
   io.to("indexQuotes").emit("indexQuotes", indices);
 }
 
+function broadcastSectorHeatmap(payload) {
+  io.to("sectorHeatmap").emit("sectorHeatmap", payload);
+}
+
 startPolygonFeed(DEFAULT_SYMBOLS, broadcastQuotes);
 startPolygonIndexFeed(broadcastIndexQuotes);
+startSectorHeatmapFeed(broadcastSectorHeatmap);
 
 httpServer.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
