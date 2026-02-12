@@ -37,14 +37,16 @@ export default function Home() {
         <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-muted">
           Market Overview
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {SYMBOLS.map((symbol) => (
-            <StockCard
-              key={symbol}
-              symbol={symbol}
-              quote={quotes[symbol] ?? null}
-            />
-          ))}
+        <div className="mx-auto max-w-5xl">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {SYMBOLS.map((symbol) => (
+              <StockCard
+                key={symbol}
+                symbol={symbol}
+                quote={quotes[symbol] ?? null}
+              />
+            ))}
+          </div>
         </div>
       </section>
 

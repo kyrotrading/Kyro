@@ -1,6 +1,6 @@
 const POLYGON_API_KEY = process.env.POLYGON_API_KEY || "";
 const BASE = "https://api.polygon.io";
-const POLL_MS = 5000;
+const POLL_MS = 10000;
 const INDEX_POLL_MS = 10000; // 10 seconds for indices
 
 /**
