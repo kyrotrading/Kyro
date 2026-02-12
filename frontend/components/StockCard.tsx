@@ -54,7 +54,11 @@ export function StockCard({ symbol, quote }: Props) {
       </div>
 
       <div className="mt-4 font-mono text-2xl font-bold text-white">
-        {quote ? `$${quote.price.toFixed(2)}` : "—"}
+        {quote ? (
+          `$${quote.price.toFixed(2)}`
+        ) : (
+          <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-accent align-middle" />
+        )}
       </div>
 
       {quote && (
@@ -83,9 +87,7 @@ export function StockCard({ symbol, quote }: Props) {
       )}
 
       {!quote && (
-        <div className="mt-3 flex items-center">
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
-        </div>
+        <div className="mt-3 h-4" />
       )}
     </div>
   );

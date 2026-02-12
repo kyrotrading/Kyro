@@ -1,45 +1,8 @@
+import WebSocket from "ws";
+
 const POLYGON_API_KEY = process.env.POLYGON_API_KEY || "";
 const BASE = "https://api.polygon.io";
-const POLL_MS = 10000;
 const INDEX_POLL_MS = 10000; // 10 seconds for indices
-
-/**
- * Fetch snapshot (day OHLC + last trade) for a symbol from Polygon.io
- * Uses /v2/snapshot and falls back to /v2/aggs/ticker/prev when needed
- */
-async function fetchQuote(symbol) {
-  if (!POLYGON_API_KEY) return null;
-  try {
-    const snapRes = await fetch(
-      `${BASE}/v2/snapshot/locale/us/markets/stocks/tickers/${symbol}?apiKey=${POLYGON_API_KEY}`
-    ).then((r) => r.json());
-
-    const ticker = snapRes?.ticker;
-    const day = ticker?.day ?? {};
-    const lastTrade = ticker?.lastTrade ?? {};
-    const prev = ticker?.prevDay ?? {};
-
-    const open = day?.o ?? prev?.c ?? prev?.o ?? 0;
-    const high = day?.h ?? open;
-    const low = day?.l ?? open;
-    const price = lastTrade?.p ?? day?.c ?? prev?.c ?? open;
-    const volume = day?.v ?? prev?.v ?? 0;
-
-    return {
-      symbol,
-      price,
-      open,
-      high,
-      low,
-      close: price,
-      volume,
-      timestamp: Date.now(),
-    };
-  } catch (err) {
-    console.warn(`Polygon fetch failed for ${symbol}:`, err.message);
-    return null;
-  }
-}
 
 /**
  * Fetch snapshot for US indices (S&P 500, NASDAQ, Dow, Russell 2000)
@@ -94,13 +57,95 @@ function indexDisplayName(ticker) {
 }
 
 export function startPolygonFeed(symbols, onQuotes) {
-  async function poll() {
-    const results = await Promise.all(symbols.map((s) => fetchQuote(s)));
-    onQuotes(results.filter(Boolean));
+  if (!POLYGON_API_KEY) {
+    console.warn("POLYGON_API_KEY missing. Stock websocket feed not started.");
+    return;
   }
 
-  poll();
-  setInterval(poll, POLL_MS);
+  const state = {};
+  let dirty = false;
+  let reconnectTimer = null;
+  let flushTimer = null;
+  let ws = null;
+
+  const flush = () => {
+    if (!dirty) return;
+    dirty = false;
+    onQuotes(Object.values(state));
+  };
+
+  const connect = () => {
+    ws = new WebSocket("wss://socket.polygon.io/stocks");
+
+    ws.on("open", () => {
+      ws.send(JSON.stringify({ action: "auth", params: POLYGON_API_KEY }));
+      const params = symbols
+        .flatMap((s) => [`T.${s}`, `A.${s}`])
+        .join(",");
+      ws.send(JSON.stringify({ action: "subscribe", params }));
+      console.log(`Connected Polygon websocket for: ${symbols.join(", ")}`);
+    });
+
+    ws.on("message", (raw) => {
+      let payload;
+      try {
+        payload = JSON.parse(raw.toString());
+      } catch {
+        return;
+      }
+      if (!Array.isArray(payload)) return;
+
+      for (const msg of payload) {
+        const symbol = msg.sym;
+        if (!symbol || !symbols.includes(symbol)) continue;
+
+        // T = trade, A = second aggregate
+        if (msg.ev !== "T" && msg.ev !== "A") continue;
+
+        const price = msg.ev === "A" ? msg.c : msg.p;
+        if (typeof price !== "number") continue;
+
+        const prev = state[symbol];
+        const open = prev?.open ?? (msg.ev === "A" && typeof msg.o === "number" ? msg.o : price);
+        const high = Math.max(prev?.high ?? price, msg.h ?? price, price);
+        const low = Math.min(prev?.low ?? price, msg.l ?? price, price);
+        const volume = (prev?.volume ?? 0) + (typeof msg.s === "number" ? msg.s : msg.v ?? 0);
+
+        state[symbol] = {
+          symbol,
+          price,
+          open,
+          high,
+          low,
+          close: price,
+          volume,
+          timestamp: Date.now(),
+        };
+        dirty = true;
+      }
+    });
+
+    ws.on("error", (err) => {
+      console.warn("Polygon websocket error:", err.message);
+    });
+
+    ws.on("close", () => {
+      console.warn("Polygon websocket closed. Reconnecting in 3s...");
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(connect, 3000);
+    });
+  };
+
+  connect();
+  flushTimer = setInterval(flush, 1000);
+
+  return () => {
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    if (flushTimer) clearInterval(flushTimer);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.close();
+    }
+  };
 }
 
 const DEFAULT_INDEX_TICKERS = ["I:SPX", "I:NDX", "I:DJI", "I:RUT"];
