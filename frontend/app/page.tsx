@@ -1,64 +1,43 @@
 "use client";
 
 import { useSocketQuotes } from "@/lib/useSocketQuotes";
-import { useSocketIndexQuotes } from "@/lib/useSocketIndexQuotes";
 import { StockCard } from "@/components/StockCard";
-import { IndexCard } from "@/components/IndexCard";
 
 const SYMBOLS = ["AAPL", "SPY", "TSLA"] as const;
 
-const INDEX_NAMES: Record<string, string> = {
-  "I:SPX": "S&P 500",
-  "I:NDX": "NASDAQ",
-  "I:DJI": "Dow Jones",
-  "I:RUT": "Russell 2000",
-};
-
 export default function Home() {
   const { quotes, connected } = useSocketQuotes(SYMBOLS);
-  const { quotes: indexQuotes, tickers } = useSocketIndexQuotes();
 
   return (
-    <main className="min-h-screen p-6 md:p-10">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-white">
-          Trading Platform
-        </h1>
-        <p className="mt-1 text-muted">
-          Real-time quotes · Indices & stocks via Polygon.io
-        </p>
-        <div className="mt-3 flex items-center gap-2">
+    <main className="min-h-screen space-y-10 p-6 md:p-10">
+      {/* Top bar / status */}
+      <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white">
+            Market Overview
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            Real-time data from Polygon.io. AAPL · SPY · TSLA.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 rounded-full bg-card px-4 py-2 text-sm">
           <span
             className={`h-2 w-2 rounded-full ${
               connected ? "bg-accent animate-pulse" : "bg-danger"
             }`}
           />
-          <span className="text-sm text-muted">
-            {connected ? "Live" : "Connecting…"}
+          <span className="font-mono text-xs uppercase tracking-wide text-muted">
+            {connected ? "Live" : "Disconnected"}
           </span>
         </div>
       </header>
 
-      <section className="mb-10">
-        <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-muted">
-          Major indices (updates every 10s)
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {tickers.map((ticker) => (
-            <IndexCard
-              key={ticker}
-              name={INDEX_NAMES[ticker] ?? ticker}
-              quote={indexQuotes[ticker] ?? null}
-            />
-          ))}
-        </div>
-      </section>
-
+      {/* Market overview row */}
       <section>
         <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-muted">
-          Stocks
+          Market Overview
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
           {SYMBOLS.map((symbol) => (
             <StockCard
               key={symbol}
@@ -66,6 +45,79 @@ export default function Home() {
               quote={quotes[symbol] ?? null}
             />
           ))}
+        </div>
+      </section>
+
+      {/* Market sentiment row */}
+      <section className="space-y-4">
+        <h2 className="text-sm font-medium uppercase tracking-wider text-muted">
+          Market Sentiment
+        </h2>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* Fear & Greed Index card (UI only for now) */}
+          <div className="rounded-2xl border border-white/10 bg-card p-6 shadow-lg">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  Fear &amp; Greed Index
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  Overall market sentiment indicator
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-surface">
+                <span className="text-3xl font-bold text-white">--</span>
+              </div>
+              <div className="space-y-2 text-sm text-muted">
+                <p className="text-danger font-medium">
+                  Failed to display data
+                </p>
+                <p className="text-xs">
+                  This metric will appear once a live Fear &amp; Greed data
+                  source is connected.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Put/Call Ratio card (UI only for now) */}
+          <div className="rounded-2xl border border-white/10 bg-card p-6 shadow-lg">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  Put/Call Ratio
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  Options market positioning (puts vs calls)
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-white">--</span>
+                <span className="text-xs font-medium uppercase tracking-wide text-muted">
+                  Neutral
+                </span>
+              </div>
+
+              <div className="h-2 w-full rounded-full bg-surface">
+                <div className="h-full w-1/3 rounded-full bg-accent/60" />
+              </div>
+
+              <p className="text-sm text-danger font-medium">
+                Failed to display data
+              </p>
+              <p className="text-xs text-muted">
+                This metric will appear once a live options/put-call data source
+                is connected.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
     </main>
