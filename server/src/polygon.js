@@ -1,4 +1,5 @@
 import WebSocket from "ws";
+import { getSectorSymbols } from "./sectorHeatmap.js";
 
 const POLYGON_API_KEY = process.env.POLYGON_API_KEY || "";
 const BASE = "https://api.polygon.io";
@@ -56,11 +57,14 @@ function indexDisplayName(ticker) {
   return names[ticker] ?? ticker;
 }
 
-export function startPolygonFeed(symbols, onQuotes) {
+export function startPolygonFeed(symbols, onQuotes, onAllQuotes) {
   if (!POLYGON_API_KEY) {
     console.warn("POLYGON_API_KEY missing. Stock websocket feed not started.");
     return;
   }
+
+  const sectorSymbols = getSectorSymbols();
+  const subscribedSymbols = [...new Set([...symbols, ...sectorSymbols])];
 
   const state = {};
   let dirty = false;
@@ -71,7 +75,9 @@ export function startPolygonFeed(symbols, onQuotes) {
   const flush = () => {
     if (!dirty) return;
     dirty = false;
-    onQuotes(Object.values(state));
+    const primary = symbols.map((s) => state[s]).filter(Boolean);
+    onQuotes(primary);
+    if (typeof onAllQuotes === "function") onAllQuotes({ ...state });
   };
 
   const connect = () => {
@@ -79,11 +85,13 @@ export function startPolygonFeed(symbols, onQuotes) {
 
     ws.on("open", () => {
       ws.send(JSON.stringify({ action: "auth", params: POLYGON_API_KEY }));
-      const params = symbols
+      const params = subscribedSymbols
         .flatMap((s) => [`T.${s}`, `A.${s}`])
         .join(",");
       ws.send(JSON.stringify({ action: "subscribe", params }));
-      console.log(`Connected Polygon websocket for: ${symbols.join(", ")}`);
+      console.log(
+        `Connected Polygon websocket for ${subscribedSymbols.length} symbols`
+      );
     });
 
     ws.on("message", (raw) => {
@@ -97,7 +105,7 @@ export function startPolygonFeed(symbols, onQuotes) {
 
       for (const msg of payload) {
         const symbol = msg.sym;
-        if (!symbol || !symbols.includes(symbol)) continue;
+        if (!symbol || !subscribedSymbols.includes(symbol)) continue;
 
         // T = trade, A = second aggregate
         if (msg.ev !== "T" && msg.ev !== "A") continue;
@@ -119,6 +127,8 @@ export function startPolygonFeed(symbols, onQuotes) {
           low,
           close: price,
           volume,
+          change: price - open,
+          changePercent: open ? ((price - open) / open) * 100 : 0,
           timestamp: Date.now(),
         };
         dirty = true;

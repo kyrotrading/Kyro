@@ -1,7 +1,3 @@
-const POLYGON_API_KEY = process.env.POLYGON_API_KEY || "";
-const BASE = "https://api.polygon.io";
-const HEATMAP_POLL_MS = 10000;
-
 const TOP_SECTORS = [
   { id: "energy", name: "Energy", symbols: ["XOM", "CVX", "COP", "SLB", "EOG", "HAL"] },
   { id: "semis", name: "Semiconductors", symbols: ["NVDA", "AMD", "AVGO", "MU", "LRCX", "KLAC"] },
@@ -15,48 +11,11 @@ const TOP_SECTORS = [
   { id: "healthcare", name: "Healthcare", symbols: ["LLY", "JNJ", "UNH", "MRK", "TMO", "PFE"] },
 ];
 
-function asQuote(snapshot) {
-  const prevClose = snapshot?.prevDay?.c ?? 0;
-  const price = snapshot?.day?.c ?? snapshot?.lastTrade?.p ?? prevClose;
-  if (!price || !prevClose) return null;
-  const change = snapshot?.todaysChange ?? price - prevClose;
-  const changePercent =
-    snapshot?.todaysChangePerc ??
-    (prevClose ? ((price - prevClose) / prevClose) * 100 : 0);
-  return {
-    symbol: snapshot.ticker,
-    price,
-    change,
-    changePercent,
-  };
+export function getSectorSymbols() {
+  return [...new Set(TOP_SECTORS.flatMap((s) => s.symbols))];
 }
 
-async function fetchAllSectorQuotes() {
-  if (!POLYGON_API_KEY) return null;
-  try {
-    const allSymbols = [...new Set(TOP_SECTORS.flatMap((s) => s.symbols))];
-    const list = allSymbols.join(",");
-    const res = await fetch(
-      `${BASE}/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${encodeURIComponent(
-        list
-      )}&apiKey=${POLYGON_API_KEY}`
-    ).then((r) => r.json());
-
-    const tickers = Array.isArray(res?.tickers) ? res.tickers : [];
-    const bySymbol = {};
-
-    for (const snapshot of tickers) {
-      const parsed = asQuote(snapshot);
-      if (parsed) bySymbol[parsed.symbol] = parsed;
-    }
-    return bySymbol;
-  } catch (err) {
-    console.warn("Sector heatmap fetch failed:", err.message);
-    return null;
-  }
-}
-
-function buildHeatmapPayload(bySymbol) {
+export function buildHeatmapPayload(bySymbol) {
   if (!bySymbol) return { sectors: [], breadth: null };
 
   let totalAdvancing = 0;
@@ -107,15 +66,3 @@ function buildHeatmapPayload(bySymbol) {
 
   return { sectors, breadth };
 }
-
-export function startSectorHeatmapFeed(onHeatmap) {
-  async function poll() {
-    const quotes = await fetchAllSectorQuotes();
-    const payload = buildHeatmapPayload(quotes);
-    onHeatmap(payload);
-  }
-
-  poll();
-  setInterval(poll, HEATMAP_POLL_MS);
-}
-

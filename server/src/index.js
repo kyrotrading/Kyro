@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import { startPolygonFeed, startPolygonIndexFeed } from "./polygon.js";
-import { startSectorHeatmapFeed } from "./sectorHeatmap.js";
+import { buildHeatmapPayload } from "./sectorHeatmap.js";
 
 const PORT = process.env.PORT || 4000;
 const app = express();
@@ -57,9 +57,11 @@ function broadcastSectorHeatmap(payload) {
   io.to("sectorHeatmap").emit("sectorHeatmap", payload);
 }
 
-startPolygonFeed(DEFAULT_SYMBOLS, broadcastQuotes);
+startPolygonFeed(DEFAULT_SYMBOLS, broadcastQuotes, (allQuotes) => {
+  const payload = buildHeatmapPayload(allQuotes);
+  broadcastSectorHeatmap(payload);
+});
 startPolygonIndexFeed(broadcastIndexQuotes);
-startSectorHeatmapFeed(broadcastSectorHeatmap);
 
 httpServer.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
