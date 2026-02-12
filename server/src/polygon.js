@@ -57,6 +57,46 @@ function indexDisplayName(ticker) {
   return names[ticker] ?? ticker;
 }
 
+async function seedSnapshots(symbols, state) {
+  try {
+    const list = symbols.join(",");
+    const res = await fetch(
+      `${BASE}/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${encodeURIComponent(
+        list
+      )}&apiKey=${POLYGON_API_KEY}`
+    ).then((r) => r.json());
+
+    const tickers = Array.isArray(res?.tickers) ? res.tickers : [];
+    const now = Date.now();
+
+    for (const t of tickers) {
+      const symbol = t?.ticker;
+      if (!symbol || !symbols.includes(symbol)) continue;
+
+      const prevClose = t?.prevDay?.c ?? 0;
+      const open = t?.day?.o ?? prevClose;
+      const price = t?.lastTrade?.p ?? t?.day?.c ?? prevClose;
+      if (!price || !prevClose) continue;
+
+      state[symbol] = {
+        symbol,
+        price,
+        open,
+        prevClose,
+        high: t?.day?.h ?? price,
+        low: t?.day?.l ?? price,
+        close: price,
+        volume: t?.day?.v ?? 0,
+        change: price - prevClose,
+        changePercent: prevClose ? ((price - prevClose) / prevClose) * 100 : 0,
+        timestamp: now,
+      };
+    }
+  } catch (err) {
+    console.warn("Polygon snapshot seed failed:", err.message);
+  }
+}
+
 export function startPolygonFeed(symbols, onQuotes, onAllQuotes) {
   if (!POLYGON_API_KEY) {
     console.warn("POLYGON_API_KEY missing. Stock websocket feed not started.");
@@ -114,21 +154,29 @@ export function startPolygonFeed(symbols, onQuotes, onAllQuotes) {
         if (typeof price !== "number") continue;
 
         const prev = state[symbol];
-        const open = prev?.open ?? (msg.ev === "A" && typeof msg.o === "number" ? msg.o : price);
+        const open =
+          prev?.open ??
+          (msg.ev === "A" && typeof msg.o === "number" ? msg.o : price);
+        const prevClose = prev?.prevClose ?? open;
         const high = Math.max(prev?.high ?? price, msg.h ?? price, price);
         const low = Math.min(prev?.low ?? price, msg.l ?? price, price);
-        const volume = (prev?.volume ?? 0) + (typeof msg.s === "number" ? msg.s : msg.v ?? 0);
+        const volume =
+          msg.ev === "A" && typeof msg.v === "number"
+            ? msg.v
+            : (prev?.volume ?? 0) +
+              (typeof msg.s === "number" ? msg.s : 0);
 
         state[symbol] = {
           symbol,
           price,
           open,
+          prevClose,
           high,
           low,
           close: price,
           volume,
-          change: price - open,
-          changePercent: open ? ((price - open) / open) * 100 : 0,
+          change: price - prevClose,
+          changePercent: prevClose ? ((price - prevClose) / prevClose) * 100 : 0,
           timestamp: Date.now(),
         };
         dirty = true;
@@ -146,7 +194,10 @@ export function startPolygonFeed(symbols, onQuotes, onAllQuotes) {
     });
   };
 
-  connect();
+  seedSnapshots(subscribedSymbols, state).finally(() => {
+    dirty = true;
+    connect();
+  });
   flushTimer = setInterval(flush, 1000);
 
   return () => {
