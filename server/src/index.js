@@ -2,7 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
-import { startPolygonFeed } from "./polygon.js";
+import { startPolygonFeed, startPolygonIndexFeed } from "./polygon.js";
 
 const PORT = process.env.PORT || 4000;
 const app = express();
@@ -21,6 +21,7 @@ const io = new Server(httpServer, {
 });
 
 const DEFAULT_SYMBOLS = ["AAPL", "SPY", "TSLA"];
+const INDEX_SYMBOLS = ["I:SPX", "I:NDX", "I:DJI", "I:RUT"];
 
 io.on("connection", (socket) => {
   socket.on("subscribe", (symbols) => {
@@ -33,13 +34,22 @@ io.on("connection", (socket) => {
       socket.data.symbols = valid;
     }
   });
+
+  socket.on("subscribeIndices", () => {
+    socket.join("indexQuotes");
+  });
 });
 
 function broadcastQuotes(quotes) {
   io.to("quotes").emit("quotes", quotes);
 }
 
+function broadcastIndexQuotes(indices) {
+  io.to("indexQuotes").emit("indexQuotes", indices);
+}
+
 startPolygonFeed(DEFAULT_SYMBOLS, broadcastQuotes);
+startPolygonIndexFeed(broadcastIndexQuotes);
 
 httpServer.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);

@@ -56,7 +56,7 @@ export function StockCard({ symbol, quote }: Props) {
       )}
 
       {!quote && (
-        <p className="mt-4 text-sm text-muted">Waiting for data…</p>
+        <p className="mt-4 text-sm text-danger">Failed to display data</p>
       )}
     </div>
   );
